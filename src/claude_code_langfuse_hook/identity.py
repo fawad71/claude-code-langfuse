@@ -1,8 +1,8 @@
 """User-identity resolution.
 
-Per the PRD (§5), `user_id` is derived from `git config user.email` at
-hook runtime — every engineer already has this set for commits, so we
-inherit a free per-machine identity without any per-user setup.
+`user_id` is derived from `git config user.email` at hook runtime —
+every engineer already has this set for commits, so we inherit a free
+per-machine identity without any per-user setup.
 """
 
 from __future__ import annotations

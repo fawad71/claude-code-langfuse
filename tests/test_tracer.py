@@ -113,7 +113,7 @@ def _make_cfg(tmp_path: Path) -> config_mod.Config:
         project_root=tmp_path,
         env_path=None,
         trace_enabled=True,
-        project_name="karzaty",
+        project_name="my-project",
         langfuse_base_url="https://lf.example",
         langfuse_public_key="pk",
         langfuse_secret_key="sk",
@@ -161,7 +161,7 @@ def test_emit_turn_records_generation_with_all_four_token_types(tmp_path: Path) 
         tracer.emit_turn(
             langfuse=fake,
             cfg=cfg,
-            user_id="demo@kavak.com",
+            user_id="demo@example.com",
             session_id="sess-1",
             turn_num=1,
             turn=turn,
@@ -172,9 +172,9 @@ def test_emit_turn_records_generation_with_all_four_token_types(tmp_path: Path) 
     assert len(propagate_calls) == 1
     pc = propagate_calls[0]
     assert pc["session_id"] == "sess-1"
-    assert pc["user_id"] == "demo@kavak.com"
+    assert pc["user_id"] == "demo@example.com"
     assert pc["trace_name"] == "Claude Code - Turn 1"
-    assert "project:karzaty" in pc["tags"]
+    assert "project:my-project" in pc["tags"]
     assert "model:claude-sonnet-4-6-20250827" in pc["tags"]
 
     # We made three observation calls: root span, generation, one tool.

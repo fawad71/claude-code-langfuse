@@ -21,7 +21,7 @@ For each Stop event Claude Code fires, we:
 
 Every step is wrapped in fail-open guards: any exception is logged to
 `~/.claude/state/claude_langfuse.log` and the process exits 0 so
-Claude Code never sees a hook failure (PRD R8).
+Claude Code never sees a hook failure.
 """
 
 from __future__ import annotations

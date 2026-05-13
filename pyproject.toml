@@ -29,14 +29,12 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/kavak/claude-code-langfuse-hook"
-Issues = "https://github.com/kavak/claude-code-langfuse-hook/issues"
+Homepage = "https://github.com/fawad71/claude-code-langfuse"
+Issues = "https://github.com/fawad71/claude-code-langfuse/issues"
+Repository = "https://github.com/fawad71/claude-code-langfuse"
 
 [project.scripts]
 claude-langfuse = "claude_code_langfuse_hook.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-
-[tool.setuptools.package-data]
-claude_code_langfuse_hook = ["templates/*.toml"]
