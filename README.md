@@ -201,12 +201,6 @@ pytest
 
 ---
 
-## A note on versions
-
-This package works with Langfuse v3 (`langfuse>=3.0,<4.0`). Langfuse v4
-landed in March 2026 and changed the trace API; we'll move to v4 once
-it's re-tested.
-
 ## License
 
 MIT.
