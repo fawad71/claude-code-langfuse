@@ -122,17 +122,6 @@ def test_debug_and_max_chars_knobs(tmp_path: Path, monkeypatch: pytest.MonkeyPat
     assert cfg.max_chars == 1234
 
 
-def test_trace_subagents_defaults_off(tmp_path: Path) -> None:
-    cfg = config_mod.resolve(tmp_path)
-    assert cfg.trace_subagents is False
-
-
-def test_trace_subagents_opt_in(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("CC_TRACE_SUBAGENTS", "true")
-    cfg = config_mod.resolve(tmp_path)
-    assert cfg.trace_subagents is True
-
-
 def test_max_chars_falls_back_to_default_on_bad_value(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

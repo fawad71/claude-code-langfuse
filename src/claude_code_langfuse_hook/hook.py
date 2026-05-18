@@ -124,16 +124,6 @@ def run() -> int:
             )
             return 0
 
-        # Subagent transcripts live under .../subagents/... — they're
-        # one-off helper sessions Claude spins up. Default to skipping
-        # them so the main session's trace doesn't get crowded.
-        if "subagents" in transcript_path.parts and not cfg.trace_subagents:
-            log.debug(
-                "Skipping subagent transcript %s (set CC_TRACE_SUBAGENTS=true to include).",
-                transcript_path,
-            )
-            return 0
-
         # Lazy import — Langfuse SDK is only needed when we're actually tracing.
         try:
             from langfuse import Langfuse

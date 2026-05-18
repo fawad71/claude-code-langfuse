@@ -119,7 +119,6 @@ def _make_cfg(tmp_path: Path) -> config_mod.Config:
         langfuse_secret_key="sk",
         debug=False,
         max_chars=20_000,
-        trace_subagents=False,
     )
 
 
@@ -210,6 +209,62 @@ def test_emit_turn_records_generation_with_all_four_token_types(tmp_path: Path) 
     # Tool output was attached via .update(output=...).
     update_outputs = [u for u in tool["updates"] if "output" in u]
     assert any(u["output"] == "file body" for u in update_outputs)
+
+
+def test_emit_turn_sums_usage_across_multi_step_turn(tmp_path: Path) -> None:
+    """A turn whose agent loop made 3 API calls (asst → tool → asst →
+    tool → asst) must report the sum of all 3 usage blocks — otherwise
+    we badly under-count cache reads / tokens / cost."""
+    cfg = _make_cfg(tmp_path)
+    user = {"type": "user", "message": {"content": "do stuff"}}
+
+    def asst(mid: str, usage: dict, content_blocks: list) -> dict:
+        return {
+            "type": "assistant",
+            "message": {
+                "id": mid,
+                "model": "claude-sonnet-4-6",
+                "content": content_blocks,
+                "usage": usage,
+            },
+        }
+
+    msgs = [
+        asst("m1", {
+            "input_tokens": 100,
+            "output_tokens": 50,
+            "cache_creation_input_tokens": 10_000,
+            "cache_read_input_tokens": 0,
+        }, [{"type": "tool_use", "id": "t1", "name": "Read", "input": {}}]),
+        asst("m2", {
+            "input_tokens": 30,
+            "output_tokens": 80,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 10_000,
+        }, [{"type": "tool_use", "id": "t2", "name": "Grep", "input": {}}]),
+        asst("m3", {
+            "input_tokens": 20,
+            "output_tokens": 200,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 10_100,
+        }, [{"type": "text", "text": "done"}]),
+    ]
+    turn = transcript.Turn(
+        user_msg=user, assistant_msgs=msgs,
+        tool_results_by_id={"t1": "a", "t2": "b"},
+    )
+    fake = _FakeLangfuse()
+    with _capture_propagate():
+        tracer.emit_turn(
+            langfuse=fake, cfg=cfg, user_id="u", session_id="s",
+            turn_num=1, turn=turn, transcript_path=tmp_path / "t.jsonl",
+        )
+
+    usage = fake.calls[1]["usage_details"]
+    assert usage["input_tokens"] == 150            # 100 + 30 + 20
+    assert usage["output_tokens"] == 330           # 50 + 80 + 200
+    assert usage["cache_creation_input_tokens"] == 10_000
+    assert usage["cache_read_input_tokens"] == 20_100  # 10_000 + 10_100
 
 
 def test_emit_turn_dedups_tool_use_blocks_by_id(tmp_path: Path) -> None:

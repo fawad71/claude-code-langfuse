@@ -146,12 +146,13 @@ def test_turn_straddling_two_fires_emits_exactly_once(
     assert ss.pending_msgs == []
 
 
-def test_subagent_transcript_is_skipped_by_default(
+def test_subagent_transcript_is_traced_by_default(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Transcripts under a `subagents/` path component are skipped unless
-    CC_TRACE_SUBAGENTS=true — the main session's traces shouldn't be
-    crowded with nested-agent loops."""
+    """Subagent transcripts (path contains `subagents/`) are traced like
+    anything else — they're often the bulk of Claude Code's actual
+    token spend (e.g., haiku background calls) so skipping them
+    silently under-reports cost."""
     fake_home = tmp_path / "home"
     fake_home.mkdir()
     monkeypatch.setattr(Path, "home", lambda: fake_home)
@@ -169,8 +170,6 @@ def test_subagent_transcript_is_skipped_by_default(
     monkeypatch.setenv("CC_LANGFUSE_BASE_URL", "https://lf.example")
     monkeypatch.setenv("CC_LANGFUSE_PUBLIC_KEY", "pk")
     monkeypatch.setenv("CC_LANGFUSE_SECRET_KEY", "sk")
-    monkeypatch.delenv("CC_TRACE_SUBAGENTS", raising=False)
-
     project = tmp_path / "proj"
     sub_dir = project / "subagents" / "agent1"
     sub_dir.mkdir(parents=True)
@@ -192,8 +191,12 @@ def test_subagent_transcript_is_skipped_by_default(
         monkeypatch.setattr("sys.stdin", _Stdin(payload))
         assert hook_mod.run() == 0
 
-    # Nothing should have been written to state — we exited before the lock.
-    assert not new_state_file.exists()
+    # Subagent transcripts now go through the full pipeline: state was
+    # written and the single turn was committed (turn_count == 1).
+    final = state_mod.load_state(state_mod.STATE_FILE)
+    key = state_mod.state_key("sub-sess", str(transcript))
+    ss = state_mod.load_session_state(final, key)
+    assert ss.turn_count == 1
 
 
 class _Stdin:

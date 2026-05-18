@@ -169,7 +169,6 @@ can read it if you want to.
 | `CC_LANGFUSE_SECRET_KEY` | yes       | Langfuse secret key                                    |
 | `CC_LANGFUSE_DEBUG`      | no        | Set to `true` for chatty logs                          |
 | `CC_LANGFUSE_MAX_CHARS`  | no        | Trim long content above this size (default 20000)      |
-| `CC_TRACE_SUBAGENTS`     | no        | Set to `true` to also trace subagents (off by default) |
 
 
 ---

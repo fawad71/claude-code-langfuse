@@ -24,10 +24,6 @@ Optional:
   CC_LANGFUSE_MAX_CHARS    truncation cap for prompt/response/tool bodies
                            (default 20000; original length + sha256 are
                            preserved in metadata)
-  CC_TRACE_SUBAGENTS       "true" to also trace subagent transcripts;
-                           default false skips them so the main
-                           session's traces aren't crowded with nested
-                           agent loops.
 """
 
 from __future__ import annotations
@@ -53,7 +49,6 @@ SECRET_KEY_VAR = "CC_LANGFUSE_SECRET_KEY"
 
 DEBUG_VAR = "CC_LANGFUSE_DEBUG"
 MAX_CHARS_VAR = "CC_LANGFUSE_MAX_CHARS"
-TRACE_SUBAGENTS_VAR = "CC_TRACE_SUBAGENTS"
 
 ALL_VARS = (
     TRACE_ENABLED_VAR,
@@ -63,7 +58,6 @@ ALL_VARS = (
     SECRET_KEY_VAR,
     DEBUG_VAR,
     MAX_CHARS_VAR,
-    TRACE_SUBAGENTS_VAR,
 )
 
 
@@ -81,7 +75,6 @@ class Config:
     langfuse_secret_key: str
     debug: bool
     max_chars: int
-    trace_subagents: bool
 
     @property
     def is_complete(self) -> bool:
@@ -203,5 +196,4 @@ def resolve(start: Optional[Path] = None) -> Config:
         langfuse_secret_key=pick(SECRET_KEY_VAR),
         debug=_as_bool(pick(DEBUG_VAR)),
         max_chars=max_chars,
-        trace_subagents=_as_bool(pick(TRACE_SUBAGENTS_VAR)),
     )

@@ -82,6 +82,41 @@ def _tool_calls_for_turn(turn: Turn, max_chars: int) -> list[dict]:
     return calls
 
 
+def _sum_usage(assistant_msgs: list[dict]) -> dict:
+    """Sum Anthropic usage across every assistant call in a turn.
+
+    Each assistant message in `turn.assistant_msgs` corresponds to one
+    Anthropic API call inside the agent loop, and each carries its own
+    `usage` block. We sum the four token categories so the generation's
+    `usage_details` reflects the whole turn, not just the final step.
+    """
+    totals: dict[str, int] = {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+    }
+    seen_ids: set[str] = set()
+    for am in assistant_msgs:
+        # Skip duplicate-id rows: streamed updates of the same message
+        # carry cumulative usage on the latest row, so summing every
+        # row with the same id would double-count.
+        m = am.get("message") or {}
+        mid = m.get("id")
+        if isinstance(mid, str) and mid:
+            if mid in seen_ids:
+                continue
+            seen_ids.add(mid)
+        u = m.get("usage") or {}
+        for k in totals:
+            v = u.get(k)
+            try:
+                totals[k] += int(v or 0)
+            except (TypeError, ValueError):
+                pass
+    return totals
+
+
 # ---------------------------------------------------------------------------
 # Per-turn emission
 # ---------------------------------------------------------------------------
@@ -119,11 +154,26 @@ def emit_turn(
     )
 
     model = get_model(turn.assistant_msgs[0])
-    usage = get_usage(last_assistant)
+    # A turn is an agent loop — each assistant message is its own
+    # Anthropic API call with its own usage block. Sum across all of
+    # them so cache reads / cache creations / input / output tokens
+    # from intermediate tool-calling steps aren't dropped. Without
+    # this, a turn that hits Read/Grep/etc. several times reports
+    # only the *last* step's tokens, badly under-counting cost.
+    usage = _sum_usage(turn.assistant_msgs)
     tool_calls = _tool_calls_for_turn(turn, cfg.max_chars)
 
     trace_name = f"Claude Code - Turn {turn_num}"
-    tags = [f"project:{cfg.project_name}", f"model:{model}", "claude-code"]
+    # Build a composite `user_project:` tag (e.g.
+    # "user_project:muhammad.fawad.ext-karzaty_api") so a single Langfuse
+    # dashboard widget can group by user × project in one dimension.
+    user_local = user_id.split("@", 1)[0] if "@" in user_id else user_id
+    tags = [
+        f"project:{cfg.project_name}",
+        f"user_project:{user_local}-{cfg.project_name}",
+        f"model:{model}",
+        "claude-code",
+    ]
 
     with propagate_attributes(
         session_id=session_id,
