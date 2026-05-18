@@ -5,4 +5,4 @@ Public surface:
   - `claude_code_langfuse_hook.hook.run` — programmatic hook entry point
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.2"
